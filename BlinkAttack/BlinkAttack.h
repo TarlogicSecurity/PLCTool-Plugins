@@ -30,99 +30,86 @@
 #ifndef _PRIME_BLINKATTACK_H
 #define _PRIME_BLINKATTACK_H
 
-#include <Attacks/Attack.h>
-#include <PRIME/PrimeFrame.h>
-#include <Topology/Adapter.h>
-#include <gurux/include/enums.h>
+#include <PLCTool/Attacks/Attack.h>
+#include <PLCTool/PRIME/PrimeFrame.h>
+#include <PLCTool/Topology/Adapter.h>
+#include <PLCTool/gurux/include/enums.h>
 
 #include <QDateTime>
 #include <QObject>
 #include <QTimer>
 #include <vector>
 
-namespace BlinkAttackPlugin
-{
-  class BlinkAttack : public PLCTool::Attack
-  {
-    Q_OBJECT
+namespace BlinkAttackPlugin {
+class BlinkAttack : public PLCTool::Attack {
+  Q_OBJECT
 
-    enum State {
-      IDLE,
-      SEQUENCING,
-      DISCONNECTING,
-      CONNECTING,
-      RELEASING,
-      COMPLETED
-    };
-
-    enum State state;
-    bool cancelled;
-
-    int msTimeout;
-    int msMessageWait = 1000;
-    QTimer *timeoutTimer;
-    QTimer *messageTimer;
-
-    std::vector<uint8_t> sna;
-    PLCTool::NodeId nid;
-    PLCTool::ConnId lcid;
-    int level;
-    int serverAddress;
-    int clientAddress;
-    DLMS_AUTHENTICATION authenticationLevel;
-    std::string password;
-    bool isLogicalName;
-
-    uint8_t pktId;
-    uint8_t ackId;
-
-    PLCTool::PrimeFrame *frame;
-
-    PLCTool::StringParams endResult;
-
-    void connectAll(void);
-
-    void updateProgress(void);
-
-    void composeAARQ(void);
-    void composeDisconnect(void);
-    void composeConnect(void);
-    void composeRelease(void);
-
-    void idToSna(PLCTool::NodeId id, uint8_t *sna);
-    bool sequencingFound(void);
-    bool isPacketExpected(unsigned char pktId);
-
-    void transitionTo(State next);
-
-   public:
-    BlinkAttack(
-        QString const attackName,
-        PLCTool::StringParams const &params,
-        PLCTool::PrimeAdapter *adapter,
-        QObject *parent = nullptr);
-
-   private slots:
-    void onTimeout(void);
-    void onMessageTime(void);
-
-   public slots:
-    void onFrameReceived(
-        PLCTool::Concentrator *,
-        QDateTime,
-        bool downlink,
-        const void *data,
-        size_t size);
-    void onDataReceived(
-        PLCTool::Meter *meter,
-        QDateTime timeStamp,
-        bool downlink,
-        const void *data,
-        size_t size);
-    void onStart(void) override;
-    void onCancel(void) override;
-    void onEnd(void) override;
+  enum State {
+    IDLE,
+    SEQUENCING,
+    DISCONNECTING,
+    CONNECTING,
+    RELEASING,
+    COMPLETED
   };
-}  // namespace BlinkAttackPlugin
 
-#endif  // _PRIME_BLINKATTACK_H
+  enum State state;
+  bool cancelled;
+
+  int msTimeout;
+  int msMessageWait = 1000;
+  QTimer *timeoutTimer;
+  QTimer *messageTimer;
+
+  std::vector<uint8_t> sna;
+  PLCTool::NodeId nid;
+  PLCTool::ConnId lcid;
+  int level;
+  int serverAddress;
+  int clientAddress;
+  DLMS_AUTHENTICATION authenticationLevel;
+  std::string password;
+  bool isLogicalName;
+
+  uint8_t pktId;
+  uint8_t ackId;
+
+  PLCTool::PrimeFrame *frame;
+
+  PLCTool::StringParams endResult;
+
+  void connectAll(void);
+
+  void updateProgress(void);
+
+  void composeAARQ(void);
+  void composeDisconnect(void);
+  void composeConnect(void);
+  void composeRelease(void);
+
+  void idToSna(PLCTool::NodeId id, uint8_t *sna);
+  bool sequencingFound(void);
+  bool isPacketExpected(unsigned char pktId);
+
+  void transitionTo(State next);
+
+public:
+  BlinkAttack(QString const attackName, PLCTool::StringParams const &params,
+              PLCTool::PrimeAdapter *adapter, QObject *parent = nullptr);
+
+private slots:
+  void onTimeout(void);
+  void onMessageTime(void);
+
+public slots:
+  void onFrameReceived(PLCTool::Concentrator *, QDateTime, bool downlink,
+                       const void *data, size_t size);
+  void onDataReceived(PLCTool::Meter *meter, QDateTime timeStamp, bool downlink,
+                      const void *data, size_t size);
+  void onStart(void) override;
+  void onCancel(void) override;
+  void onEnd(void) override;
+};
+} // namespace BlinkAttackPlugin
+
+#endif // _PRIME_BLINKATTACK_H

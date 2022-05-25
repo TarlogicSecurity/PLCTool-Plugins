@@ -30,26 +30,23 @@
 #ifndef _PRIME_BLINKATTACKFACTORY_H
 #define _PRIME_BLINKATTACKFACTORY_H
 
-#include <Attacks/Attack.h>
-#include <Attacks/AttackFactory.h>
-#include <Topology/Adapter.h>
+#include <PLCTool/Attacks/Attack.h>
+#include <PLCTool/Attacks/AttackFactory.h>
+#include <PLCTool/Topology/Adapter.h>
 
 #include <QObject>
 
-namespace BlinkAttackPlugin
-{
-  class BlinkAttackFactory : public PLCTool::AttackFactory
-  {
-    Q_OBJECT
+namespace BlinkAttackPlugin {
+class BlinkAttackFactory : public PLCTool::AttackFactory {
+  Q_OBJECT
 
-   public:
-    BlinkAttackFactory(QObject *parent = nullptr);
+public:
+  BlinkAttackFactory(QObject *parent = nullptr);
 
-    PLCTool::Attack *getAttack(
-        PLCTool::StringParams const &params,
-        PLCTool::PrimeAdapter *adapter) const override;
-    QList<QString> getAttackParamList(void) const override;
-  };
-}  // namespace BlinkAttackPlugin
+  PLCTool::Attack *getAttack(PLCTool::StringParams const &params,
+                             PLCTool::PrimeAdapter *adapter) const override;
+  QList<QString> getAttackParamList(void) const override;
+};
+} // namespace BlinkAttackPlugin
 
-#endif  // _PRIME_BLINKATTACKFACTORY_H
+#endif // _PRIME_BLINKATTACKFACTORY_H

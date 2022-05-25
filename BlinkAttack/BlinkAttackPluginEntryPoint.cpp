@@ -27,9 +27,9 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
-#include <Attacks/AttackFactoryLibrary.h>
-#include <BlinkAttack/BlinkAttack.h>
-#include <BlinkAttack/BlinkAttackFactory.h>
+#include "BlinkAttack.h"
+#include "BlinkAttackFactory.h"
+#include <PLCTool/Attacks/AttackFactoryLibrary.h>
 
 using namespace BlinkAttackPlugin;
 
@@ -37,9 +37,7 @@ extern "C" {
 void entry(PLCTool::AttackFactoryLibrary *);
 }
 
-void
-entry(PLCTool::AttackFactoryLibrary *attackFactoryLibrary)
-{
+void entry(PLCTool::AttackFactoryLibrary *attackFactoryLibrary) {
   attackFactoryLibrary->registerAttackFactory(
       new BlinkAttackFactory(attackFactoryLibrary));
 }
